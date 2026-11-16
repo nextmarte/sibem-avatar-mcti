@@ -48,9 +48,9 @@ image = (
             "CFG_PKL": "/cache/checkpoints/ditto_cfg/v0.4_hubert_cfg_pytorch.pkl",
             "DATA_ROOT": "/cache/checkpoints/ditto_pytorch",
             "DEFAULT_PORTRAIT": "/app/public/sibem.jpg",
-            "GAZE_FPS_TARGET": "20",
-            "STREAM_MAX_DIM": "576",
-            "STREAM_JPEG_QUALITY": "68",
+            "GAZE_FPS_TARGET": "24",
+            "STREAM_MAX_DIM": "540",
+            "STREAM_JPEG_QUALITY": "65",
             "DITTO_SAMPLING_STEPS": "4",
             "PYTHONUNBUFFERED": "1",
         }

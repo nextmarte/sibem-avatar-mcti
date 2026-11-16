@@ -10,6 +10,7 @@ import base64
 import asyncio
 import threading
 import subprocess
+import contextlib
 from pathlib import Path
 from typing import Optional
 
@@ -87,6 +88,7 @@ class GazeState:
         self.detected = False
         self.source = "idle"
         self.last_update = 0.0
+        self.last_t = 0.0
 
     def update(self, x: float, y: float, detected: bool, source: str = "webcam"):
         with self.lock:
@@ -114,8 +116,11 @@ class GazeState:
                 self.target_x = 0.0
                 self.target_y = 0.0
 
-            # Smooth responsive follow without jitter
-            alpha = 0.24 if self.detected else 0.12
+            # Scale per-frame alpha so physical gaze velocity matches 10 FPS baseline
+            dt = max(0.01, min(0.20, t_now - self.last_t)) if self.last_t > 0.0 else 0.05
+            self.last_t = t_now
+            base_alpha = 0.24 if self.detected else 0.12
+            alpha = 1.0 - math.pow(1.0 - base_alpha, dt / 0.10)
             self.cur_x += (self.target_x - self.cur_x) * alpha
             self.cur_y += (self.target_y - self.cur_y) * alpha
             return self.cur_x, self.cur_y, self.detected
@@ -161,6 +166,7 @@ class ReactionState:
         self.smile_level = 0.0
         self.smile_target = 0.0
         self.smile_until = 0.0
+        self.last_t = 0.0
 
     def trigger(self, kind: str, strength: float = 1.0, duration: float = 2.0):
         t_now = time.perf_counter()
@@ -183,9 +189,12 @@ class ReactionState:
 
     def step(self, t_now: float) -> dict:
         with self.lock:
+            dt = max(0.01, min(0.20, t_now - self.last_t)) if self.last_t > 0.0 else 0.05
+            self.last_t = t_now
             if t_now > self.smile_until:
                 self.smile_target = 0.0
-            self.smile_level += (self.smile_target - self.smile_level) * 0.18
+            smile_alpha = 1.0 - math.pow(1.0 - 0.18, dt / 0.10)
+            self.smile_level += (self.smile_target - self.smile_level) * smile_alpha
 
             active_kind = "none"
             nod_pitch = 0.0
@@ -263,8 +272,9 @@ class SibemGazeEngine:
         self.portrait_cache: dict[str, dict] = {}
         self.width = 768
         self.height = 768
-        self.fps_target = float(os.environ.get("GAZE_FPS_TARGET", "20.0"))
+        self.fps_target = float(os.environ.get("GAZE_FPS_TARGET", "24.0"))
         self.device_name = "CPU"
+        self.render_stream = None
         self._blink_started_at = 0.0
         self._next_blink_at = 0.0
         self._double_blink_pending = False
@@ -296,6 +306,7 @@ class SibemGazeEngine:
 
         if torch.cuda.is_available():
             self.device_name = torch.cuda.get_device_name(0)
+            self.render_stream = torch.cuda.Stream()
 
         # Configure Audio2Motion for fast low-latency diffusion
         self.sampling_steps = int(os.environ.get("DITTO_SAMPLING_STEPS", "4"))
@@ -306,6 +317,8 @@ class SibemGazeEngine:
 
         self._next_blink_at = time.perf_counter() + 1.8
         self.set_portrait(str(DEFAULT_PORTRAIT), avatar_id="sibem")
+        if self.render_stream is not None:
+            torch.cuda.synchronize()
         # Warmup CUDA graphs/kernels
         self._render_one_frame(copy.deepcopy(self.x_s_info), None, gaze_to_motion_params(0.0, 0.0, 0.0, False), 0.0)
         self.ready = True
@@ -522,22 +535,27 @@ class SibemGazeEngine:
 
             x_d_kp = transform_keypoint(x_d)
             x_d_kp = self.stitch_net(self.x_s_kp, x_d_kp)
-            x_d_t = torch.from_numpy(x_d_kp).cuda().half()
 
-            with torch.inference_mode():
+            stream_ctx = (
+                torch.cuda.stream(self.render_stream)
+                if self.render_stream is not None
+                else contextlib.nullcontext()
+            )
+            with torch.inference_mode(), stream_ctx:
+                x_d_t = torch.from_numpy(x_d_kp).cuda().half()
                 f3d = self.warp_mod(self.f_s_t, self.x_s_t, x_d_t)
                 pred = self.decode_mod(f3d).clamp_(0.0, 1.0)
                 warped = F.grid_sample(
                     pred, self.grid_c2o_half, mode="bilinear", padding_mode="zeros", align_corners=False
                 )
                 out_t = (warped * self.mask_warped_half + self.inv_mask_bg_half).clamp_(0.0, 1.0)
+                max_dim = int(os.environ.get("STREAM_MAX_DIM", "540"))
+                if max_dim > 0 and max(out_t.shape[2], out_t.shape[3]) > max_dim:
+                    out_t = F.interpolate(out_t, size=(max_dim, max_dim), mode="bilinear", align_corners=False)
                 out_u8 = (out_t[0].permute(1, 2, 0) * 255.0).byte().cpu().numpy()
 
         bgr = cv2.cvtColor(out_u8, cv2.COLOR_RGB2BGR)
-        max_dim = int(os.environ.get("STREAM_MAX_DIM", "576"))
-        if max_dim > 0 and max(bgr.shape[:2]) > max_dim:
-            bgr = cv2.resize(bgr, (max_dim, max_dim), interpolation=cv2.INTER_AREA)
-        jpeg_quality = int(os.environ.get("STREAM_JPEG_QUALITY", "68"))
+        jpeg_quality = int(os.environ.get("STREAM_JPEG_QUALITY", "65"))
         ok, buf = cv2.imencode(".jpg", bgr, [int(cv2.IMWRITE_JPEG_QUALITY), jpeg_quality])
         if not ok:
             raise RuntimeError("JPEG encode failed")
@@ -855,7 +873,7 @@ async def ws_stream(websocket: WebSocket):
                     )
 
                 dt = time.perf_counter() - frame_t0
-                target_fps = engine.fps_target if active_job is not None else min(engine.fps_target, 10.0)
+                target_fps = engine.fps_target if active_job is not None else min(engine.fps_target, 20.0)
                 sleep_for = max(0.002, (1.0 / target_fps) - dt)
                 await asyncio.sleep(sleep_for)
             except Exception as exc:

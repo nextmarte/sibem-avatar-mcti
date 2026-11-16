@@ -1207,7 +1207,7 @@ server.on('upgrade', (request, socket, head) => {
       wsUp.on('message', (data, isBinary) => {
         if (!closed && clientWs.readyState === WebSocket.OPEN) {
           // Drop stale video frames when network socket backs up so audio/lip-sync never lag behind
-          if (isBinary && clientWs.bufferedAmount > 96_000) {
+          if (isBinary && clientWs.bufferedAmount > 384_000) {
             return;
           }
           clientWs.send(data, { binary: isBinary });
