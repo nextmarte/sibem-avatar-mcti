@@ -27,7 +27,7 @@ const AVATAR_PRESETS = [
     name: 'Sibem',
     role: 'Assistente Virtual MCTI • Lei do Bem',
     voice: 'pt-BR-FranciscaNeural',
-    rate: '+0%',
+    rate: '+12%',
     image: '/avatars/sibem.jpg',
     filePath: path.join(AVATARS_DIR, 'sibem.jpg'),
   },
@@ -1207,7 +1207,7 @@ server.on('upgrade', (request, socket, head) => {
       wsUp.on('message', (data, isBinary) => {
         if (!closed && clientWs.readyState === WebSocket.OPEN) {
           // Drop stale video frames when network socket backs up so audio/lip-sync never lag behind
-          if (isBinary && clientWs.bufferedAmount > 90_000) {
+          if (isBinary && clientWs.bufferedAmount > 96_000) {
             return;
           }
           clientWs.send(data, { binary: isBinary });

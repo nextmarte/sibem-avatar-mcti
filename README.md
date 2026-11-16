@@ -8,12 +8,12 @@ Assistente virtual conversacional em tempo real criada para atendimento ao públ
 
 ## Arquitetura
 
-- **Front-end (`index.html`, `src/`)**: Interface Vite + MediaPipe Tasks Vision (`public/mediapipe/`) para detecção local de rosto, olhar, sorriso, emoção e gestos (`joinha`, `aceno`, `vitória`, aceno de cabeça), captura de microfone com VAD sem interrupção da fala do usuário e renderizador `<canvas>` para o stream WebP em tempo real.
+- **Front-end (`index.html`, `src/`)**: Interface Vite + MediaPipe Tasks Vision (`public/mediapipe/`) para detecção local de rosto, olhar, sorriso, emoção e gestos (`joinha`, `aceno`, `vitória`, aceno de cabeça), captura de microfone com VAD sem interrupção da fala do usuário e renderizador `<canvas>` para o stream JPEG em tempo real.
 - **Servidor Web & Orquestração (`server.js`)**: Express + `ws` que serve o bundle `dist/`, consulta a base indexada do Guia (`knowledge/guia_lei_do_bem_mcti_uff_2026.json`), gera respostas via **Nebius Token Factory** (`Qwen/Qwen3.8-27B` e `google/gemma-3-27b-it`), sintetiza voz em PT-BR com `msedge-tts` (`pt-BR-FranciscaNeural`) e faz proxy WebSocket com isolamento por `sessionId`.
-- **Worker Neural GPU (`gaze_worker.py` + `ditto_engine/`)**: FastAPI + Uvicorn + PyTorch rodando o pipeline Ditto (`digital-avatar/ditto-talkinghead`) com isolamento de estado por sessão (`SessionState`), redimensionamento direto na GPU e envio em WebP.
+- **Worker Neural GPU (`gaze_worker.py` + `ditto_engine/`)**: FastAPI + Uvicorn + PyTorch rodando o pipeline Ditto (`digital-avatar/ditto-talkinghead`) com isolamento de estado por sessão (`SessionState`).
 - **Deploy Serverless (`modal_gaze.py`)**:
   - `web`: contêiner CPU econômico (até 100 conexões concorrentes por réplica).
-  - `serve`: worker GPU **NVIDIA H100** sob demanda (`min_containers=0`, `max_containers=4`, `scaledown_window=35` segundos), ligado apenas enquanto houver conversa ativa.
+  - `serve`: worker GPU **NVIDIA L40S** sob demanda (`min_containers=0`, `max_containers=4`, `scaledown_window=35` segundos), ligado apenas enquanto houver conversa ativa.
 
 ---
 
@@ -26,7 +26,7 @@ Assistente virtual conversacional em tempo real criada para atendimento ao públ
 ├── public/                 # Retrato da Sibem, fundo e modelos/WASM do MediaPipe
 ├── src/                    # Código-fonte do front-end (main.js, visitorMemory.js, style.css)
 ├── gaze_worker.py          # Servidor FastAPI/WebSocket do avatar em GPU
-├── modal_gaze.py           # Infraestrutura e deploy serverless na Modal (web + H100 sob demanda)
+├── modal_gaze.py           # Infraestrutura e deploy serverless na Modal (web + L40S sob demanda)
 ├── server.js               # Servidor Node.js (API SSE, TTS, RAG, proxy WebSocket multiusuário)
 ├── index.html              # Página principal
 ├── package.json            # Dependências e scripts Node.js
@@ -46,7 +46,7 @@ Assistente virtual conversacional em tempo real criada para atendimento ao públ
 
 ## Como Executar a partir de Qualquer Lugar
 
-### Opção 1 — Rodar o app localmente usando a GPU H100 sob demanda da Modal (não precisa de GPU local)
+### Opção 1 — Rodar o app localmente usando a GPU L40S sob demanda da Modal (não precisa de GPU local)
 
 1. Clone o repositório e instale as dependências Node:
    ```bash
@@ -89,7 +89,7 @@ Assistente virtual conversacional em tempo real criada para atendimento ao públ
    modal secret create sibem-nebius NEBIUS_API_KEY=sua_chave_nebius_aqui
    ```
 
-4. Publique a aplicação e o worker H100 sob demanda:
+4. Publique a aplicação e o worker L40S sob demanda:
    ```bash
    modal deploy modal_gaze.py
    ```

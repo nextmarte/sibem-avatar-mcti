@@ -286,30 +286,7 @@ function playSpeechBase64(b64, mime = 'audio/mpeg') {
 
 let frameRendering = false;
 let pendingFrameBuffer = null;
-
-function detectImageMime(arrayBuffer) {
-  const bytes = new Uint8Array(arrayBuffer);
-  if (
-    bytes.length >= 12 &&
-    bytes[0] === 0x52 &&
-    bytes[1] === 0x49 &&
-    bytes[2] === 0x46 &&
-    bytes[3] === 0x46 &&
-    bytes[8] === 0x57 &&
-    bytes[9] === 0x45 &&
-    bytes[10] === 0x42 &&
-    bytes[11] === 0x50
-  ) {
-    return 'image/webp';
-  }
-  return 'image/jpeg';
-}
-
-function clearAvatarFrameQueue() {
-  pendingFrameBuffer = null;
-}
-
-async function enqueueVideoFrame(arrayBuffer) {
+async function drawJpegBuffer(arrayBuffer) {
   pendingFrameBuffer = arrayBuffer;
   if (frameRendering) return;
   frameRendering = true;
@@ -317,8 +294,7 @@ async function enqueueVideoFrame(arrayBuffer) {
     while (pendingFrameBuffer) {
       const nextBuf = pendingFrameBuffer;
       pendingFrameBuffer = null;
-      const mime = detectImageMime(nextBuf);
-      const blob = new Blob([nextBuf], { type: mime });
+      const blob = new Blob([nextBuf], { type: 'image/jpeg' });
       const bmp = await createImageBitmap(blob);
       if (avatarCanvas.width !== bmp.width || avatarCanvas.height !== bmp.height) {
         avatarCanvas.width = bmp.width;
@@ -342,7 +318,7 @@ function connectAvatarWs() {
 
     socket.onmessage = (ev) => {
       if (typeof ev.data !== 'string') {
-        enqueueVideoFrame(ev.data);
+        void drawJpegBuffer(ev.data);
         return;
       }
       const msg = JSON.parse(ev.data);
@@ -375,7 +351,7 @@ function connectAvatarWs() {
 
     socket.onclose = () => {
       if (telemetryBadge) telemetryBadge.classList.add('hidden');
-      clearAvatarFrameQueue();
+      pendingFrameBuffer = null;
       avatarCanvas.classList.remove('live');
       if (!settled) {
         settled = true;
@@ -436,7 +412,7 @@ function stopLive() {
   }
   saveVisitorProfiles();
   currentVisitor = null;
-  clearAvatarFrameQueue();
+  pendingFrameBuffer = null;
   avatarCanvas.classList.remove('live');
   if (telemetryBadge) telemetryBadge.classList.add('hidden');
   gazePill.classList.add('hidden');

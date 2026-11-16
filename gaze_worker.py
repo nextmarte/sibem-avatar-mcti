@@ -87,7 +87,6 @@ class GazeState:
         self.detected = False
         self.source = "idle"
         self.last_update = 0.0
-        self.last_step_at = 0.0
 
     def update(self, x: float, y: float, detected: bool, source: str = "webcam"):
         with self.lock:
@@ -115,11 +114,8 @@ class GazeState:
                 self.target_x = 0.0
                 self.target_y = 0.0
 
-            # Frame-rate independent smooth follow (natural human head/eye damping)
-            dt = max(0.005, min(0.25, t_now - self.last_step_at)) if self.last_step_at > 0.0 else 0.05
-            self.last_step_at = t_now
-            speed = 4.0 if self.detected else 1.8
-            alpha = float(np.clip(1.0 - math.exp(-speed * dt), 0.02, 0.22))
+            # Smooth responsive follow without jitter
+            alpha = 0.24 if self.detected else 0.12
             self.cur_x += (self.target_x - self.cur_x) * alpha
             self.cur_y += (self.target_y - self.cur_y) * alpha
             return self.cur_x, self.cur_y, self.detected
@@ -134,9 +130,9 @@ def gaze_to_motion_params(nx: float, ny: float, t_sec: float, tracked: bool) -> 
       - Negative ny (top) -> negative delta_pitch (chin up -7.5 deg), eye_dy < 0
       - Positive ny (bottom) -> positive delta_pitch (chin down +6.5 deg), eye_dy > 0
     """
-    micro_yaw = math.sin(t_sec * 0.42) * (0.18 if tracked else 0.45)
-    micro_pitch = math.cos(t_sec * 0.52) * (0.15 if tracked else 0.35)
-    micro_roll = math.sin(t_sec * 0.35) * (0.20 if tracked else 0.42)
+    micro_yaw = math.sin(t_sec * 0.75) * (0.25 if tracked else 0.7)
+    micro_pitch = math.cos(t_sec * 0.95) * (0.2 if tracked else 0.5)
+    micro_roll = math.sin(t_sec * 0.55) * (0.3 if tracked else 0.65)
 
     yaw_head = (-nx * 11.5 if nx < 0 else -nx * 9.0) + micro_yaw
     pitch_head = (ny * 7.5 if ny < 0 else ny * 6.5) + micro_pitch
@@ -201,20 +197,20 @@ class ReactionState:
                     active_kind = self.kind
                     env = math.sin(math.pi * u)
                     if self.kind in ("head_yes", "thumbs_up", "nod", "victory"):
-                        # Calm, natural vertical affirmative nod
-                        amp = 6.5 if self.kind in ("head_yes", "nod") else 4.2
-                        nod_pitch = math.sin(u * math.pi * 2.8) * amp * env * self.strength
-                        nod_roll = math.sin(u * math.pi * 1.5) * 1.2 * env
+                        # Clear vertical affirmative double/triple nod (pitch up & down)
+                        amp = 8.5 if self.kind in ("head_yes", "nod") else 5.2
+                        nod_pitch = math.sin(u * math.pi * 4.5) * amp * env * self.strength
+                        nod_roll = math.sin(u * math.pi * 2.0) * 1.6 * env
                     elif self.kind == "wave":
-                        nod_yaw = math.sin(u * math.pi * 2.0) * 3.5 * env
-                        nod_pitch = math.sin(u * math.pi * 1.5) * 2.2 * env
-                        nod_roll = 2.4 * env
+                        nod_yaw = math.sin(u * math.pi * 3.0) * 4.5 * env
+                        nod_pitch = math.sin(u * math.pi * 2.0) * 3.0 * env
+                        nod_roll = 3.2 * env
                     elif self.kind in ("head_no", "thumbs_down", "shake"):
-                        # Calm horizontal negative head shake
-                        amp = 8.0 if self.kind in ("head_no", "shake") else 5.0
-                        nod_yaw = math.sin(u * math.pi * 3.0) * amp * env * self.strength
-                        nod_roll = math.sin(u * math.pi * 1.8) * 1.5 * env
-                        nod_pitch = 1.2 * env
+                        # Clear horizontal negative head shake (yaw left & right)
+                        amp = 11.0 if self.kind in ("head_no", "shake") else 6.5
+                        nod_yaw = math.sin(u * math.pi * 5.0) * amp * env * self.strength
+                        nod_roll = math.sin(u * math.pi * 2.5) * 2.2 * env
+                        nod_pitch = 1.8 * env
                 else:
                     self.kind = "none"
 
@@ -249,6 +245,7 @@ class SessionState:
         self.blink = BlinkState()
         self.speech_queue: queue.Queue = queue.Queue()
         self.active_speech_cancel = threading.Event()
+        self.speech_gen = 0
 
 
 class SibemGazeEngine:
@@ -266,7 +263,7 @@ class SibemGazeEngine:
         self.portrait_cache: dict[str, dict] = {}
         self.width = 768
         self.height = 768
-        self.fps_target = float(os.environ.get("GAZE_FPS_TARGET", "24.0"))
+        self.fps_target = float(os.environ.get("GAZE_FPS_TARGET", "20.0"))
         self.device_name = "CPU"
         self._blink_started_at = 0.0
         self._next_blink_at = 0.0
@@ -386,7 +383,7 @@ class SibemGazeEngine:
                 sampling_timesteps=self.sampling_steps,
                 online_mode=False,
                 v_min_max_for_clip=self.dk.get("v_min_max_for_clip"),
-                smo_k_d=6,
+                smo_k_d=3,
             )
 
             seq_frames = self.sdk.audio2motion.seq_frames  # 80
@@ -484,7 +481,7 @@ class SibemGazeEngine:
     ) -> bytes:
         with self.render_lock:
             if d0 is not None:
-                use_keys = {"exp": 0.92, "pitch": 0.24, "yaw": 0.15, "roll": 0.18, "t": 0.14}
+                use_keys = self.dk.get("use_d_keys") or {"exp": 1.0, "pitch": 0.4, "yaw": 0.2, "roll": 0.4, "t": 0.3}
                 x_d = _mix_s_d_info(
                     self.x_s_info,
                     x_d_base,
@@ -534,26 +531,16 @@ class SibemGazeEngine:
                     pred, self.grid_c2o_half, mode="bilinear", padding_mode="zeros", align_corners=False
                 )
                 out_t = (warped * self.mask_warped_half + self.inv_mask_bg_half).clamp_(0.0, 1.0)
-                max_dim = int(os.environ.get("STREAM_MAX_DIM", "560"))
-                if max_dim > 0 and max(out_t.shape[2], out_t.shape[3]) > max_dim:
-                    scale = max_dim / float(max(out_t.shape[2], out_t.shape[3]))
-                    out_h = max(2, int(round(out_t.shape[2] * scale)))
-                    out_w = max(2, int(round(out_t.shape[3] * scale)))
-                    out_t = F.interpolate(out_t, size=(out_h, out_w), mode="bilinear", align_corners=False)
                 out_u8 = (out_t[0].permute(1, 2, 0) * 255.0).byte().cpu().numpy()
 
         bgr = cv2.cvtColor(out_u8, cv2.COLOR_RGB2BGR)
-        stream_fmt = os.environ.get("STREAM_FORMAT", "webp").strip().lower()
-        ok = False
-        buf = None
-        if stream_fmt == "webp" and hasattr(cv2, "IMWRITE_WEBP_QUALITY"):
-            webp_quality = int(os.environ.get("STREAM_WEBP_QUALITY", "78"))
-            ok, buf = cv2.imencode(".webp", bgr, [int(cv2.IMWRITE_WEBP_QUALITY), webp_quality])
+        max_dim = int(os.environ.get("STREAM_MAX_DIM", "576"))
+        if max_dim > 0 and max(bgr.shape[:2]) > max_dim:
+            bgr = cv2.resize(bgr, (max_dim, max_dim), interpolation=cv2.INTER_AREA)
+        jpeg_quality = int(os.environ.get("STREAM_JPEG_QUALITY", "68"))
+        ok, buf = cv2.imencode(".jpg", bgr, [int(cv2.IMWRITE_JPEG_QUALITY), jpeg_quality])
         if not ok:
-            jpeg_quality = int(os.environ.get("STREAM_JPEG_QUALITY", "74"))
-            ok, buf = cv2.imencode(".jpg", bgr, [int(cv2.IMWRITE_JPEG_QUALITY), jpeg_quality])
-        if not ok or buf is None:
-            raise RuntimeError("Frame encode failed")
+            raise RuntimeError("JPEG encode failed")
         return buf.tobytes()
 
     def render_frame_snapshot(self) -> tuple[bytes, dict]:
@@ -687,22 +674,31 @@ async def ws_stream(websocket: WebSocket):
             "width": engine.width,
             "height": engine.height,
             "fps": engine.fps_target,
-            "mime": "image/webp" if os.environ.get("STREAM_FORMAT", "webp").strip().lower() == "webp" else "image/jpeg",
             "device": engine.device_name,
             "avatarId": engine.avatar_id,
         }
     )
 
     stop_flag = asyncio.Event()
+    raw_speak_queue: asyncio.Queue[tuple[str, Optional[str], int]] = asyncio.Queue()
 
-    async def prepare_and_enqueue_speech(audio_b64: str, speech_id: Optional[str]):
-        try:
-            audio_bytes = base64.b64decode(audio_b64)
-            job = await asyncio.to_thread(engine.prepare_speech, audio_bytes, speech_id)
-            if not stop_flag.is_set() and not sess.active_speech_cancel.is_set():
-                sess.speech_queue.put(job)
-        except Exception as exc:
-            print(f"[ws_stream speak error] {exc}")
+    async def speak_worker_loop():
+        while not stop_flag.is_set():
+            try:
+                audio_b64, speech_id, gen = await raw_speak_queue.get()
+                try:
+                    if stop_flag.is_set() or gen != sess.speech_gen or sess.active_speech_cancel.is_set():
+                        continue
+                    audio_bytes = base64.b64decode(audio_b64)
+                    job = await asyncio.to_thread(engine.prepare_speech, audio_bytes, speech_id)
+                    if not stop_flag.is_set() and gen == sess.speech_gen and not sess.active_speech_cancel.is_set():
+                        sess.speech_queue.put(job)
+                except Exception as exc:
+                    print(f"[ws_stream speak error] {exc}")
+                finally:
+                    raw_speak_queue.task_done()
+            except asyncio.CancelledError:
+                break
 
     async def rx_loop():
         try:
@@ -729,7 +725,14 @@ async def ws_stream(websocket: WebSocket):
                 elif mtype == "reset_gaze":
                     sess.gaze.reset()
                 elif mtype == "interrupt":
+                    sess.speech_gen += 1
                     sess.active_speech_cancel.set()
+                    while not raw_speak_queue.empty():
+                        try:
+                            raw_speak_queue.get_nowait()
+                            raw_speak_queue.task_done()
+                        except asyncio.QueueEmpty:
+                            break
                     while not sess.speech_queue.empty():
                         try:
                             sess.speech_queue.get_nowait()
@@ -739,7 +742,7 @@ async def ws_stream(websocket: WebSocket):
                     audio_b64 = msg.get("audioBase64") or ""
                     if audio_b64:
                         sess.active_speech_cancel.clear()
-                        asyncio.create_task(prepare_and_enqueue_speech(audio_b64, msg.get("speechId")))
+                        await raw_speak_queue.put((audio_b64, msg.get("speechId"), sess.speech_gen))
         except (WebSocketDisconnect, Exception):
             stop_flag.set()
 
@@ -757,6 +760,7 @@ async def ws_stream(websocket: WebSocket):
                     try:
                         active_job = sess.speech_queue.get_nowait()
                         sess.active_speech_cancel.clear()
+                        speech_t0 = frame_t0
                         await websocket.send_json(
                             {
                                 "type": "speech_start",
@@ -766,7 +770,6 @@ async def ws_stream(websocket: WebSocket):
                                 "mime": "audio/mpeg",
                             }
                         )
-                        speech_t0 = time.perf_counter() + 0.08
                     except queue.Empty:
                         active_job = None
 
@@ -781,8 +784,7 @@ async def ws_stream(websocket: WebSocket):
                         await websocket.send_json({"type": "speech_end", "speechId": sid, "interrupted": True})
                         jpg = await asyncio.to_thread(engine._render_one_frame, engine.x_s_info, None, gp, frame_t0, 1.0, react, sess.blink)
                     else:
-                        raw_elapsed = time.perf_counter() - speech_t0
-                        elapsed = max(0.0, raw_elapsed)
+                        elapsed = time.perf_counter() - speech_t0
                         frames_list = active_job["x_d_info_list"]
                         fidx = int(elapsed * 25.0)
                         if fidx >= len(frames_list) or elapsed >= active_job["durationSec"]:
@@ -794,6 +796,7 @@ async def ws_stream(websocket: WebSocket):
                                 try:
                                     active_job = sess.speech_queue.get_nowait()
                                     sess.active_speech_cancel.clear()
+                                    speech_t0 = time.perf_counter()
                                     await websocket.send_json(
                                         {
                                             "type": "speech_start",
@@ -803,7 +806,6 @@ async def ws_stream(websocket: WebSocket):
                                             "mime": "audio/mpeg",
                                         }
                                     )
-                                    speech_t0 = time.perf_counter() + 0.08
                                     jpg = await asyncio.to_thread(
                                         engine._render_one_frame,
                                         active_job["x_d_info_list"][0],
@@ -853,8 +855,8 @@ async def ws_stream(websocket: WebSocket):
                     )
 
                 dt = time.perf_counter() - frame_t0
-                target_fps = min(engine.fps_target, 20.0) if active_job is not None else min(engine.fps_target, 16.0)
-                sleep_for = max(0.020, (1.0 / target_fps) - dt)
+                target_fps = engine.fps_target if active_job is not None else min(engine.fps_target, 10.0)
+                sleep_for = max(0.002, (1.0 / target_fps) - dt)
                 await asyncio.sleep(sleep_for)
             except Exception as exc:
                 import traceback
@@ -862,9 +864,11 @@ async def ws_stream(websocket: WebSocket):
                 stop_flag.set()
                 break
 
+    speak_task = asyncio.create_task(speak_worker_loop())
     rx_task = asyncio.create_task(rx_loop())
     tx_task = asyncio.create_task(tx_loop())
     await stop_flag.wait()
+    speak_task.cancel()
     rx_task.cancel()
     tx_task.cancel()
 
