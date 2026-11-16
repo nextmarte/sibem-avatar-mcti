@@ -1,0 +1,25 @@
+# Dependencias Node e build
+node_modules/
+dist/
+
+# Variaveis de ambiente e segredos
+.env
+.env.*
+!.env.example
+
+# Python / ambientes virtuais / cache
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+
+# Pesos/checkpoints baixados em runtime e artefatos temporarios
+checkpoints/
+.modal/
+public/_custom_portrait.jpg
+
+# Sistema operacional e logs
+.DS_Store
+Thumbs.db
+*.log

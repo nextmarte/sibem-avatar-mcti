@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sibem • MCTI — Assistente Virtual da Lei do Bem</title>
+  </head>
+  <body>
+    <div id="app">
+      <div class="stage" id="stage">
+        <div class="video-frame" id="video-frame">
+          <img
+            id="avatar-fallback"
+            src="/api/portrait/current"
+            alt="Sibem — Assistente Virtual do MCTI sobre a Lei do Bem"
+          />
+          <canvas id="avatar-canvas" width="768" height="768"></canvas>
+          <span id="live-pill" class="live-pill hidden">● AO VIVO</span>
+          <span id="gaze-pill" class="gaze-pill hidden">👁️ Olhando para você</span>
+          <button
+            id="audience-pill"
+            class="audience-pill hidden"
+            type="button"
+            title="Perfil de atendimento (clique para alternar)"
+          >
+            🧑 Adulto
+          </button>
+          <span id="gesture-pill" class="gesture-pill hidden">👍 Joinha!</span>
+        </div>
+
+        <aside id="avatar-dock" class="avatar-dock hidden" aria-label="Assistente"></aside>
+
+        <div id="camera-pip" class="camera-pip hidden" title="Prévia da câmera">
+          <video id="webcam-video" autoplay playsinline muted></video>
+          <canvas id="webcam-overlay" width="160" height="120"></canvas>
+          <span id="pip-label" class="pip-label">Aguardando visitante...</span>
+        </div>
+
+        <header class="hud-top">
+          <div class="brand-pill">
+            <span class="dot" id="status-dot"></span>
+            <div>
+              <div class="brand-title" id="brand-title">Sibem • MCTI</div>
+              <div class="brand-sub" id="brand-sub">Assistente Virtual • Lei do Bem</div>
+            </div>
+          </div>
+
+          <div class="top-actions">
+            <span id="status-badge" class="status-badge">Aguardando</span>
+
+            <button
+              id="camera-btn"
+              class="btn btn-toggle"
+              type="button"
+              title="Ligar câmera para atendimento interativo"
+            >
+              📷 Câmera: OFF
+            </button>
+
+            <button
+              id="fullscreen-btn"
+              class="btn btn-ghost"
+              type="button"
+              title="Alternar tela cheia"
+            >
+              ⛶ Expandir
+            </button>
+
+            <button id="live-btn" class="btn btn-accent" type="button">
+              ● Iniciar Conversa
+            </button>
+          </div>
+        </header>
+
+        <div id="banner" class="banner hidden">
+          <div class="spinner"></div>
+          <div id="banner-text">Conectando com a Sibem...</div>
+        </div>
+
+        <section class="hud-bottom">
+          <div id="transcript-box" class="transcript-box">
+            <div class="transcript-meta">
+              <span class="transcript-tag" id="topic-tag">MCTI • Guia da Lei do Bem 2026</span>
+              <span class="mic-state" id="mic-state"></span>
+            </div>
+            <p id="transcript-text">
+              Clique em <strong>Iniciar Conversa</strong> e ative a <strong>Câmera</strong> para conversar por voz ou texto com a Sibem sobre a Lei do Bem e ciência.
+            </p>
+          </div>
+
+          <div class="chips" id="chips">
+            <button class="chip" data-q="Como funciona o trabalho do MCTI com a Lei do Bem e os números do Guia 2026?">
+              🏛️ Trabalho do MCTI e Lei do Bem
+            </button>
+            <button class="chip" data-q="Qual é a Regra de Ouro da PD&I segundo o Guia MCTI/UFF?">
+              Regra de Ouro PD&amp;I
+            </button>
+            <button class="chip" data-q="Projeto de software ERP ou tecnologia madura entra na Lei do Bem?">
+              Software e TIC
+            </button>
+            <button class="chip" data-q="Como funciona o TRL e os limites de caracteres do FORMP&D?">
+              TRL e FORMP&amp;D
+            </button>
+          </div>
+
+          <form id="chat-form" class="composer">
+            <button
+              id="mic-btn"
+              class="btn btn-icon"
+              type="button"
+              title="Pausar ou retomar microfone"
+            >
+              🎤
+            </button>
+            <input
+              id="prompt-input"
+              type="text"
+              placeholder="Escreva sua pergunta sobre a Lei do Bem ou MCTI..."
+              autocomplete="off"
+            />
+            <button id="interrupt-btn" class="btn btn-ghost hidden" type="button">
+              Parar fala
+            </button>
+            <button id="send-btn" class="btn btn-accent" type="submit">
+              Enviar
+            </button>
+          </form>
+        </section>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

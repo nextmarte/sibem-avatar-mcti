@@ -1,0 +1,21 @@
+{
+  "name": "talking-avatar-sibem-gaze",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "^0.10.21",
+    "dotenv": "^17.2.0",
+    "express": "^5.1.0",
+    "msedge-tts": "^2.0.4",
+    "openai": "^6.16.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "vite": "^6.3.5"
+  }
+}
