@@ -49,8 +49,8 @@ image = (
             "DATA_ROOT": "/cache/checkpoints/ditto_pytorch",
             "DEFAULT_PORTRAIT": "/app/public/sibem.jpg",
             "GAZE_FPS_TARGET": "24",
-            "STREAM_MAX_DIM": "540",
-            "STREAM_JPEG_QUALITY": "65",
+            "STREAM_MAX_DIM": "640",
+            "STREAM_JPEG_QUALITY": "72",
             "DITTO_SAMPLING_STEPS": "4",
             "PYTHONUNBUFFERED": "1",
         }

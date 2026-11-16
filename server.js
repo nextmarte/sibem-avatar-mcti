@@ -629,7 +629,7 @@ if (fsSync.existsSync(distDir)) {
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/livez', (_req, res) => {
-  res.json({ ok: true, port: PORT, guiaSections: GUIA_KNOWLEDGE.sections.length });
+  res.json({ ok: true, port: PORT, guiaSections: GUIA_KNOWLEDGE.sections.length, workerWsUrl: WORKER_WS });
 });
 
 app.get('/api/health', async (_req, res) => {
@@ -721,7 +721,7 @@ app.post('/api/reaction', async (req, res) => {
     const wr = await fetch(`${WORKER_HTTP}/reaction`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ kind, strength, duration }),
+      body: JSON.stringify({ sessionId, kind, strength, duration }),
     });
     res.json(await wr.json());
   } catch (err) {
@@ -820,7 +820,11 @@ app.post('/api/interrupt', async (req, res) => {
       res.json({ ok: true, scoped: true });
       return;
     }
-    const wr = await fetch(`${WORKER_HTTP}/interrupt`, { method: 'POST' });
+    const wr = await fetch(`${WORKER_HTTP}/interrupt`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId }),
+    });
     res.json(await wr.json());
   } catch (err) {
     res.status(502).json({ error: err.message });
@@ -926,7 +930,11 @@ app.post('/api/ask', async (req, res) => {
 
     const interruptPromise = sendToSession(sessionId, { type: 'interrupt' })
       ? Promise.resolve()
-      : fetch(`${WORKER_HTTP}/interrupt`, { method: 'POST' }).catch(() => {});
+      : fetch(`${WORKER_HTTP}/interrupt`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId }),
+        }).catch(() => {});
 
     const llmStream = await openai.chat.completions.create({
       model: FAST_LLM_MODEL,
@@ -953,7 +961,7 @@ app.post('/api/ask', async (req, res) => {
           void fetch(`${WORKER_HTTP}/reaction`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ kind: reactKind, strength: 1.0, duration: 2.0 }),
+            body: JSON.stringify({ sessionId, kind: reactKind, strength: 1.0, duration: 2.0 }),
           }).catch(() => {});
         }
       }
@@ -971,18 +979,21 @@ app.post('/api/ask', async (req, res) => {
         const audioBase64 = mp3.toString('base64');
         let speakInfo;
         if (sendToSession(sessionId, { type: 'speak', audioBase64 })) {
-          speakInfo = { ok: true, via: 'ws', sessionId };
+          speakInfo = { ok: true, routed: true, via: 'ws', sessionId };
         } else {
           const speakRes = await fetch(`${WORKER_HTTP}/speak`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ audioBase64 }),
+            body: JSON.stringify({ audioBase64, sessionId }),
           });
           if (!speakRes.ok) {
             const errTxt = await speakRes.text();
             throw new Error(`Worker /speak error: ${errTxt}`);
           }
           speakInfo = await speakRes.json();
+          if (speakInfo.routed === false) {
+            speakInfo = { ...speakInfo, audioBase64 };
+          }
         }
         if (!firstSpokenSent) {
           firstSpokenSent = true;

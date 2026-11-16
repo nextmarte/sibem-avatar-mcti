@@ -570,6 +570,7 @@ class SibemGazeEngine:
 
 
 engine = SibemGazeEngine()
+ACTIVE_SESSIONS: dict[str, dict] = {}
 app = FastAPI(title="Sibem Gaze Worker (Ditto GPU)")
 app.add_middleware(
     CORSMiddleware,
@@ -589,12 +590,18 @@ class GazePayload(BaseModel):
 class SpeakPayload(BaseModel):
     audioBase64: str
     speechId: Optional[str] = None
+    sessionId: Optional[str] = None
 
 
 class ReactionPayload(BaseModel):
     kind: str = "smile"
     strength: float = 1.0
     duration: float = 2.0
+    sessionId: Optional[str] = None
+
+
+class InterruptPayload(BaseModel):
+    sessionId: Optional[str] = None
 
 
 @app.on_event("startup")
@@ -625,13 +632,25 @@ def post_gaze(payload: GazePayload):
 def post_reaction(payload: ReactionPayload):
     if not engine.ready:
         raise HTTPException(status_code=503, detail="Worker warming up")
+    if payload.sessionId:
+        entry = ACTIVE_SESSIONS.get(payload.sessionId)
+        if not entry:
+            return {"ok": True, "routed": False, "kind": payload.kind, "sessionId": payload.sessionId}
+        target_sess = entry["sess"]
+        if payload.kind == "blink":
+            engine.trigger_blink(target_sess.blink)
+        else:
+            target_sess.reaction.trigger(payload.kind, payload.strength, payload.duration)
+            if payload.kind in ("thumbs_up", "wave", "victory", "head_yes", "nod"):
+                engine.trigger_blink(target_sess.blink)
+        return {"ok": True, "routed": True, "kind": payload.kind, "sessionId": payload.sessionId}
     if payload.kind == "blink":
         engine.trigger_blink()
     else:
         engine.reaction.trigger(payload.kind, payload.strength, payload.duration)
         if payload.kind in ("thumbs_up", "wave", "victory", "head_yes", "nod"):
             engine.trigger_blink()
-    return {"ok": True, "kind": payload.kind}
+    return {"ok": True, "routed": True, "kind": payload.kind}
 
 
 @app.post("/avatar/{avatar_id}")
@@ -648,25 +667,61 @@ def post_avatar(avatar_id: str):
     return {"ok": True, "avatarId": engine.avatar_id, "width": engine.width, "height": engine.height}
 
 
+def _clear_session_speech(entry: dict):
+    target_sess = entry["sess"]
+    raw_q = entry["raw_speak_queue"]
+    target_sess.speech_gen += 1
+    target_sess.active_speech_cancel.set()
+    while not raw_q.empty():
+        try:
+            raw_q.get_nowait()
+            raw_q.task_done()
+        except asyncio.QueueEmpty:
+            break
+    while not target_sess.speech_queue.empty():
+        try:
+            target_sess.speech_queue.get_nowait()
+        except queue.Empty:
+            break
+
+
 @app.post("/speak")
 def post_speak(payload: SpeakPayload):
     if not engine.ready:
         raise HTTPException(status_code=503, detail="Worker warming up")
+    if payload.sessionId:
+        entry = ACTIVE_SESSIONS.get(payload.sessionId)
+        if not entry:
+            return {"ok": True, "routed": False, "sessionId": payload.sessionId}
+        target_sess = entry["sess"]
+        target_sess.active_speech_cancel.clear()
+        gen = target_sess.speech_gen
+        entry["loop"].call_soon_threadsafe(
+            entry["raw_speak_queue"].put_nowait,
+            (payload.audioBase64, payload.speechId, gen),
+        )
+        return {"ok": True, "routed": True, "sessionId": payload.sessionId}
     audio_bytes = base64.b64decode(payload.audioBase64)
     job = engine.prepare_speech(audio_bytes, payload.speechId)
     engine.speech_queue.put(job)
-    return {"ok": True, "speechId": job["speechId"], "durationSec": job["durationSec"]}
+    return {"ok": True, "routed": True, "speechId": job["speechId"], "durationSec": job["durationSec"]}
 
 
 @app.post("/interrupt")
-def post_interrupt():
+def post_interrupt(payload: Optional[InterruptPayload] = None):
+    if payload and payload.sessionId:
+        entry = ACTIVE_SESSIONS.get(payload.sessionId)
+        if not entry:
+            return {"ok": True, "routed": False, "sessionId": payload.sessionId}
+        entry["loop"].call_soon_threadsafe(_clear_session_speech, entry)
+        return {"ok": True, "routed": True, "sessionId": payload.sessionId}
     engine.active_speech_cancel.set()
     while not engine.speech_queue.empty():
         try:
             engine.speech_queue.get_nowait()
         except queue.Empty:
             break
-    return {"ok": True}
+    return {"ok": True, "routed": True}
 
 
 @app.post("/portrait")
@@ -685,7 +740,13 @@ async def post_portrait(file: UploadFile = File(...)):
 @app.websocket("/ws/stream")
 async def ws_stream(websocket: WebSocket):
     await websocket.accept()
+    session_id = websocket.query_params.get("sessionId") or ""
     sess = SessionState()
+    stop_flag = asyncio.Event()
+    raw_speak_queue: asyncio.Queue[tuple[str, Optional[str], int]] = asyncio.Queue()
+    session_entry = {"sess": sess, "loop": asyncio.get_running_loop(), "raw_speak_queue": raw_speak_queue}
+    if session_id:
+        ACTIVE_SESSIONS[session_id] = session_entry
     await websocket.send_json(
         {
             "type": "ready",
@@ -696,9 +757,6 @@ async def ws_stream(websocket: WebSocket):
             "avatarId": engine.avatar_id,
         }
     )
-
-    stop_flag = asyncio.Event()
-    raw_speak_queue: asyncio.Queue[tuple[str, Optional[str], int]] = asyncio.Queue()
 
     async def speak_worker_loop():
         while not stop_flag.is_set():
@@ -885,10 +943,14 @@ async def ws_stream(websocket: WebSocket):
     speak_task = asyncio.create_task(speak_worker_loop())
     rx_task = asyncio.create_task(rx_loop())
     tx_task = asyncio.create_task(tx_loop())
-    await stop_flag.wait()
-    speak_task.cancel()
-    rx_task.cancel()
-    tx_task.cancel()
+    try:
+        await stop_flag.wait()
+    finally:
+        if session_id and ACTIVE_SESSIONS.get(session_id) is session_entry:
+            ACTIVE_SESSIONS.pop(session_id, None)
+        speak_task.cancel()
+        rx_task.cancel()
+        tx_task.cancel()
 
 
 if __name__ == "__main__":

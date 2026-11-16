@@ -309,63 +309,131 @@ async function drawJpegBuffer(arrayBuffer) {
   }
 }
 
+let cachedWorkerWsUrl = null;
+async function resolveAvatarWsUrl() {
+  if (!cachedWorkerWsUrl) {
+    try {
+      const r = await fetch('/api/livez', { cache: 'no-store' });
+      if (r.ok) {
+        const info = await r.json();
+        if (info?.workerWsUrl) cachedWorkerWsUrl = info.workerWsUrl;
+      }
+    } catch {
+      // fall back to local/same-origin proxy below
+    }
+  }
+  const sidParam = `sessionId=${encodeURIComponent(clientSessionId)}`;
+  if (
+    cachedWorkerWsUrl &&
+    (cachedWorkerWsUrl.startsWith('wss://') ||
+      (cachedWorkerWsUrl.startsWith('ws://') &&
+        ['localhost', '127.0.0.1'].includes(location.hostname)))
+  ) {
+    const sep = cachedWorkerWsUrl.includes('?') ? '&' : '?';
+    return `${cachedWorkerWsUrl}${sep}${sidParam}`;
+  }
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${proto}//${location.host}/ws/avatar?${sidParam}`;
+}
+
 function connectAvatarWs() {
   return new Promise((resolve, reject) => {
-    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const socket = new WebSocket(`${proto}//${location.host}/ws/avatar?sessionId=${encodeURIComponent(clientSessionId)}`);
-    socket.binaryType = 'arraybuffer';
+    const startedAt = Date.now();
     let settled = false;
+    let retryTimer = null;
 
-    socket.onmessage = (ev) => {
-      if (typeof ev.data !== 'string') {
-        void drawJpegBuffer(ev.data);
+    const fail = (message) => {
+      if (settled) return;
+      settled = true;
+      if (retryTimer) {
+        clearTimeout(retryTimer);
+        retryTimer = null;
+      }
+      reject(new Error(message));
+    };
+
+    const tryConnect = async () => {
+      if (settled || !liveMode) {
+        fail('A conexão com a Sibem foi encerrada antes de iniciar. Tente novamente.');
         return;
       }
-      const msg = JSON.parse(ev.data);
-      if (msg.type === 'ready') {
+      const wsUrl = await resolveAvatarWsUrl();
+      if (settled || !liveMode) {
+        fail('A conexão com a Sibem foi encerrada antes de iniciar. Tente novamente.');
+        return;
+      }
+
+      const socket = new WebSocket(wsUrl);
+      socket.binaryType = 'arraybuffer';
+      ws = socket;
+      let retryScheduled = false;
+
+      const scheduleRetryOrFail = (errMsg) => {
+        if (settled || retryScheduled) return;
+        if (liveMode && Date.now() - startedAt < 150000) {
+          retryScheduled = true;
+          setBanner(true, 'Ligando a Sibem... aguarde alguns instantes.');
+          retryTimer = setTimeout(() => {
+            retryTimer = null;
+            void tryConnect();
+          }, 2500);
+          return;
+        }
+        fail(errMsg);
+      };
+
+      socket.onmessage = (ev) => {
+        if (typeof ev.data !== 'string') {
+          void drawJpegBuffer(ev.data);
+          return;
+        }
+        const msg = JSON.parse(ev.data);
+        if (msg.type === 'ready') {
+          if (!settled) {
+            settled = true;
+            if (retryTimer) {
+              clearTimeout(retryTimer);
+              retryTimer = null;
+            }
+            resolve(socket);
+          }
+          setBanner(false);
+          setUiState('ready', 'Ao vivo');
+        } else if (msg.type === 'status') {
+          if (msg.message) setBanner(true, msg.message);
+        } else if (msg.type === 'telemetry') {
+          // Telemetry omitted from end-user UI
+        } else if (msg.type === 'speech_start') {
+          playSpeechBase64(msg.audioBase64, msg.mime || 'audio/mpeg');
+        } else if (msg.type === 'speech_end') {
+          if (!activeAudio && audioQueue.length === 0) {
+            finishSpeakingUi();
+          }
+        }
+      };
+
+      socket.onerror = () => {
+        scheduleRetryOrFail('Não foi possível conectar ao atendimento ao vivo. Tente novamente.');
+      };
+
+      socket.onclose = () => {
+        if (ws === socket) ws = null;
+        if (telemetryBadge) telemetryBadge.classList.add('hidden');
+        pendingFrameBuffer = null;
+        avatarCanvas.classList.remove('live');
         if (!settled) {
-          settled = true;
-          resolve(socket);
+          scheduleRetryOrFail('A conexão com a Sibem foi encerrada antes de iniciar. Tente novamente.');
+          return;
         }
-        setBanner(false);
-        setUiState('ready', 'Ao vivo');
-      } else if (msg.type === 'status') {
-        if (msg.message) setBanner(true, msg.message);
-      } else if (msg.type === 'telemetry') {
-        // Telemetry omitted from end-user UI
-      } else if (msg.type === 'speech_start') {
-        playSpeechBase64(msg.audioBase64, msg.mime || 'audio/mpeg');
-      } else if (msg.type === 'speech_end') {
-        if (!activeAudio && audioQueue.length === 0) {
-          finishSpeakingUi();
+        if (liveMode) {
+          stopLive();
+          setUiState('error', 'Desconectado');
+          transcriptText.textContent = 'A conexão com a Sibem foi encerrada. Clique em Iniciar Conversa para ligar novamente.';
         }
-      }
+      };
     };
 
-    socket.onerror = () => {
-      if (!settled) {
-        settled = true;
-        reject(new Error('Não foi possível conectar ao atendimento ao vivo. Tente novamente.'));
-      }
-    };
-
-    socket.onclose = () => {
-      if (telemetryBadge) telemetryBadge.classList.add('hidden');
-      pendingFrameBuffer = null;
-      avatarCanvas.classList.remove('live');
-      if (!settled) {
-        settled = true;
-        reject(new Error('A conexão com a Sibem foi encerrada antes de iniciar. Tente novamente.'));
-        return;
-      }
-      if (liveMode) {
-        stopLive();
-        setUiState('error', 'Desconectado');
-        transcriptText.textContent = 'A conexão com a Sibem foi encerrada. Clique em Iniciar Conversa para ligar novamente.';
-      }
-    };
-
-    ws = socket;
+    void tryConnect();
   });
 }
 
@@ -662,7 +730,7 @@ function handleConfirmedGesture(kind) {
       void fetch('/api/reaction', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kind: workerReactionKind, strength: 1.0, duration: 2.1 }),
+        body: JSON.stringify({ sessionId: clientSessionId, kind: workerReactionKind, strength: 1.0, duration: 2.1 }),
       }).catch(() => {});
     }
   } else {
@@ -1217,6 +1285,7 @@ async function runTurn({ userMessage = '', mode = 'chat', gesture = '' } = {}) {
   busy = true;
   sendBtn.disabled = true;
   stopAudioPlayback();
+  sendWsJson({ type: 'interrupt' });
   stopLiveMic();
 
   if (mode === 'chat' && userMessage) {
@@ -1292,6 +1361,10 @@ async function runTurn({ userMessage = '', mode = 'chat', gesture = '' } = {}) {
           }
         } else if (evName === 'delta') {
           transcriptText.textContent = payload.fullText;
+        } else if (evName === 'spoken' || evName === 'spoken_chunk') {
+          if (payload?.routed === false && payload?.audioBase64) {
+            sendWsJson({ type: 'speak', audioBase64: payload.audioBase64, speechId: payload.speechId });
+          }
         } else if (evName === 'reply') {
           finalReply = payload.text;
           transcriptText.textContent = finalReply;
