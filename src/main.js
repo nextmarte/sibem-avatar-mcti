@@ -557,6 +557,10 @@ const CHIPS_BY_AUDIENCE = {
       label: 'TRL e FORMP&D',
       q: 'Como funciona o TRL e os limites de caracteres do FORMP&D?',
     },
+    {
+      label: '✨ Como a Sibem funciona?',
+      q: 'Como você foi criada e quais tecnologias de inteligência artificial fazem você funcionar?',
+    },
   ],
   child: [
     {
@@ -574,6 +578,10 @@ const CHIPS_BY_AUDIENCE = {
     {
       label: '🦕 Curiosidade de hoje',
       q: 'Pesquise e me conte uma curiosidade super divertida de ciência ou espaço!',
+    },
+    {
+      label: '✨ Como você ganha vida?',
+      q: 'Sibem, como você foi criada e como consegue me ver, ouvir e conversar comigo?',
     },
   ],
 };
