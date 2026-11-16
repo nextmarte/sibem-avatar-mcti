@@ -460,6 +460,129 @@
         "5 guias"
       ],
       "content": "Conforme a Parte III do Guia MCTI/UFF, a Portaria MCTI nº 9.563/2025 (ciclo de avaliação) e a Portaria MCTI nº 6.536/2022 (diligências), o fluxo após a entrega do FORMP&D segue as etapas: 1) Triagem e verificação formal; 2) Análise técnica especializada; 3) Diligências técnicas (Portaria nº 6.536/2022) caso faltem esclarecimentos ou evidências antes do parecer; 4) Emissão de Parecer Técnico (aprovação total, aprovação parcial/glosa de projetos ou dispêndios, ou reprovação). Caso discorde do parecer, a empresa dispõe de duas instâncias administrativas no próprio sistema: 5) Contestação (1ª instância de defesa no Sistema FORMP&D, submetida à reanálise pelo CAT — Comitê de Apoio Técnico), organizada em 4 guias: Projeto de PD&I, Dispêndios Financeiros, Incentivos Fiscais / Art. 19-A, e Observações Gerais / Documentos comprobatórios; 6) Recurso Administrativo (2ª instância, analisada pela área técnica competente do MCTI caso mantida a glosa na contestação), estruturada em 5 guias: Programa e Atividade, Dispêndios, Art. 19-A, Incentivos Fiscais, e Observações Gerais; 7) Consolidação no Relatório Anual do MCTI e remessa das informações fiscais finais à Receita Federal do Brasil (RFB)."
+    },
+    {
+      "id": "simulador_elegibilidade_3_passos",
+      "title": "Simulador Conversacional de Elegibilidade (3 Passos) e Cálculo Educativo do Benefício Fiscal",
+      "pages": "15-42",
+      "keywords": [
+        "simulador",
+        "simular",
+        "elegibilidade",
+        "meu projeto entra",
+        "minha empresa",
+        "calculo",
+        "quanto",
+        "economia",
+        "aliquota",
+        "retorno",
+        "exclusao adicional",
+        "60%",
+        "80%",
+        "20,4%",
+        "27,2%",
+        "irpj",
+        "csll",
+        "lucro real",
+        "3 passos",
+        "cnd",
+        "iniciante"
+      ],
+      "content": "Simulador Rápido de Elegibilidade em 3 Passos para verificar se um projeto e empresa se enquadram na Lei do Bem (Lei nº 11.196/2005): Passo 1 (Requisitos Fiscais): a empresa deve estar no regime do Lucro Real, ter lucro fiscal tributável no ano-base (IRPJ/CSLL a pagar) e manter regularidade fiscal comprovada por CND ou CPEND (certidões negativas). Empresas no Simples Nacional ou Lucro Presumido não podem usar. Passo 2 (Incerteza Tecnológica / Frascati): o projeto precisa buscar algo tecnologicamente novo ou substancialmente aprimorado, superando uma barreira técnica cujo caminho não era óbvio usando apenas engenharia ou software de rotina. Passo 3 (Rastreabilidade e Equipe): a empresa precisa controlar em contabilidade específica os gastos elegíveis de PD&I (salários CLT e encargos proporcionais às horas na PD&I, materiais de consumo, contratações de universidades/ICTs e serviços de apoio técnico) e documentar a metodologia experimental durante o ano-base. Cálculo Educativo do Benefício: além da dedução normal como despesa operacional, a Lei do Bem permite uma exclusão adicional padrão de 60% sobre os dispêndios elegíveis na base do IRPJ e da CSLL (podendo chegar a 70% se aumentar o número de pesquisadores exclusivos ou 80% caso aumente em mais de 5%, além de +20% adicionais se houver concessão de patente ou cultivar ligada ao projeto). Na prática, considerando alíquota combinada de 34% (25% IRPJ + 9% CSLL), 60% de exclusão adicional gera cerca de 20,4% de economia fiscal efetiva sobre cada R$ 100 investidos em PD&I elegível (ex.: R$ 1 milhão investido retorna cerca de R$ 204 mil no imposto), podendo chegar a 27,2% com exclusão de 80% — sem contar incentivos extras de IPI reduzido, depreciação acelerada e amortização de intangíveis. Importante: a Sibem realiza orientação educativa e não emite aprovação oficial, que ocorre via FORMP&D."
+    },
+    {
+      "id": "exemplos_praticos_por_setor",
+      "title": "Exemplos Práticos por Setor Econômico: Agro, Indústria, Saúde, Software/TIC e Energia",
+      "pages": "28-55",
+      "keywords": [
+        "setor",
+        "exemplos",
+        "agro",
+        "agronegocio",
+        "alimentos",
+        "industria",
+        "manufatura",
+        "materiais",
+        "saude",
+        "farmacos",
+        "biotecnologia",
+        "software",
+        "ia",
+        "tic",
+        "energia",
+        "quimica",
+        "sustentabilidade",
+        "rotina",
+        "entra"
+      ],
+      "content": "Exemplos concretos por setor mostrando a diferença entre rotina operacional (NÃO elegível) e PD&I elegível na Lei do Bem: 1) Agronegócio e Alimentos: apenas trocar de fornecedor de sementes ou fazer análises rotineiras de qualidade não entra; já desenvolver bioinsumos/biodefensivos inéditos para controle de pragas, nova formulação alimentícia preservando nutrientes sem conservantes sintéticos com testes de vida de prateleira e perda sensorial, ou sensores/algoritmos próprios de agricultura de precisão em condições tropicais pode entrar. 2) Indústria, Manufatura e Materiais: compra isolada de máquinas de prateleira ou manutenção fabril de rotina não entra; já pesquisar nova liga metálica/compósito para reduzir peso mantendo resistência, eliminar microfissuras em processo de soldagem ou desenvolver formulação química com menor consumo hídrico e reaproveitamento de resíduos industriais entra. 3) Saúde, Fármacos e Biotecnologia: realização de exames clínicos de rotina não entra; pesquisa pré-clínica/clínica de novos princípios ativos, dispositivos médicos com nova arquitetura de sensorização, kits diagnósticos ou bioprocessos inéditos entra. 4) Software, IA e TIC: mera parametrização de ERP/CRM pronto, construção de site institucional, migração simples de banco de dados ou atualização visual não entra; criar novos algoritmos de visão computacional, compressão/otimização de modelos de IA sob restrição severa de latência/memória ou arquitetura criptográfica de baixa sobrecarga com experimentação e benchmarks sistemáticos entra. 5) Energia, Química e Sustentabilidade: instalação padrão de painéis solares já maduros não entra; pesquisar novos eletrólitos de baterias, hidrogênio verde com maior eficiência catalítica ou captura de carbono com novos adsorventes entra."
+    },
+    {
+      "id": "jornada_anual_boas_praticas_documentacao",
+      "title": "Jornada Anual da Lei do Bem e Boas Práticas de Documentação (Dossiê Técnico e Contábil)",
+      "pages": "56-65",
+      "keywords": [
+        "jornada",
+        "passo",
+        "cronograma",
+        "anual",
+        "ano-base",
+        "calendario",
+        "dossie",
+        "documentacao",
+        "timesheet",
+        "horas",
+        "contabilidade",
+        "boas praticas",
+        "evidencias",
+        "clt",
+        "formpd"
+      ],
+      "content": "Boas práticas da jornada anual para usar a Lei do Bem com segurança e evitar glosas: 1) Planejamento e Mapeamento (Início do ano-base): identificar projetos com real incerteza tecnológica (TRL inicial e meta), definir equipe técnica envolvida e separar centros de custo / contas contábeis exclusivas de PD&I. 2) Execução e Evidências Contemporâneas (Durante todo o ano-base): registrar atas técnicas, cadernos de laboratório, hipóteses testadas, protótipos, métricas de ensaios e resultados negativos (pois falhas técnicas comprovam risco tecnológico), manter controle mensal de horas trabalhadas por profissional CLT em cada projeto (timesheet), guardar notas fiscais de materiais de consumo, contratos com ICTs/universidades e CNDs válidas. 3) Apuração Fiscal (Encerramento do ano-base e ECF): calcular os dispêndios elegíveis apurados no período e aplicar o incentivo fiscal na apuração anual do IRPJ/CSLL do Lucro Real conforme instruções da Receita Federal. 4) Declaração no Sistema FORMP&D (Ano seguinte ao ano-base, seguindo o calendário oficial publicado pelo MCTI): preencher Seções 1 a 6 respeitando os limites de caracteres, evitando jargões genéricos de gestão (como citar apenas Scrum/Kanban na metodologia técnica) e alinhando o valor declarado no FORMP&D com a contabilidade fiscal. 5) Avaliação MCTI/CAT: acompanhar eventuais diligências (Portaria MCTI nº 6.536/2022) e prazos caso seja necessário apresentar contestação ao CAT."
+    },
+    {
+      "id": "dicionario_siglas_conceitos_iniciantes",
+      "title": "Dicionário Rápido de Siglas e Conceitos: PD&I, Manual de Frascati, TRL, FORMP&D, CAT, ICT e EMBRAPII",
+      "pages": "10-32",
+      "keywords": [
+        "sigla",
+        "siglas",
+        "frascati",
+        "iniciante",
+        "conceitos",
+        "trl",
+        "formpd",
+        "cat",
+        "ict",
+        "embrapii",
+        "pdi",
+        "o que significa",
+        "dicionario",
+        "traducao"
+      ],
+      "content": "Tradução simples das principais siglas e conceitos da Lei do Bem para iniciantes: PD&I significa Pesquisa, Desenvolvimento e Inovação Tecnológica — abrange pesquisa básica, pesquisa aplicada e desenvolvimento experimental para criar produtos ou processos novos. Manual de Frascati é o guia internacional da OCDE usado pelo MCTI para distinguir PD&I de trabalho rotineiro com base em 5 critérios: ser novo (buscar conhecimento inédito), criativo (conceitos originais), incerto (resultado técnico não garantido de antemão), sistemático (método planejado e registrado) e transferível/reprodutível. TRL (Technology Readiness Level, de 1 a 9) mede a maturidade tecnológica do projeto, indo da ideia/princípio básico observado (TRL 1) até protótipo validado e sistema operacional comprovado (TRL 9). FORMP&D é o formulário eletrônico oficial do MCTI onde as empresas prestam informações anuais sobre projetos e gastos da Lei do Bem. CAT é o Comitê de Apoio Técnico, colegiado que auxilia o MCTI na reanálise técnica das contestações apresentadas pelas empresas. ICT é uma Instituição Científica, Tecnológica e de Inovação (universidades e institutos de pesquisa públicos ou privados sem fins lucrativos) que pode ser contratada pela empresa em projetos de PD&I. EMBRAPII é a organização social que credencia centros de pesquisa aplicados para desenvolver projetos em parceria ágil com a indústria."
+    },
+    {
+      "id": "sobre_sibem_estande_mcti_uff",
+      "title": "Sobre a Sibem, Tecnologias de IA e o Estande do MCTI / Guia MCTI-UFF 2026",
+      "pages": "1-14",
+      "keywords": [
+        "sibem",
+        "como foi criada",
+        "quem criou",
+        "tecnologias",
+        "inteligencia artificial",
+        "ia",
+        "estande",
+        "feira",
+        "mcti",
+        "uff",
+        "rag",
+        "avatar",
+        "leigo",
+        "camera"
+      ],
+      "content": "A Sibem é uma assistente virtual interativa desenvolvida no âmbito da iniciativa do Ministério da Ciência, Tecnologia e Inovação (MCTI) em parceria acadêmica com a Universidade Federal Fluminense (UFF) para atender visitantes de feiras e empresas interessadas na Lei do Bem e no Guia da Lei do Bem (MCTI/UFF 2026). Para quem quer entender de forma simples: ela funciona unindo quatro habilidades em tempo real — ouvidos digitais (reconhecimento de voz), acesso instantâneo a uma vasta biblioteca oficial sobre a Lei do Bem (somada a busca online quando precisa de notícias atuais), um cérebro de inteligência artificial que adapta a linguagem tanto para empresários quanto para crianças de forma lúdica, e visão com animação facial ao vivo (não há vídeo pré-gravado: cada movimento labial, olhar, piscada e sorriso reage na hora ao visitante e aos gestos na câmera). Para público técnico: utiliza arquitetura RAG sobre o Guia MCTI/UFF 2026 indexado, LLM em streaming de baixa latência, pipeline neural Audio-to-Motion baseado em difusão e warping 3D em GPU acelerada, visão computacional local para landmarks faciais/gestos e síntese de voz neural em português brasileiro. Contato institucional para dúvidas formais no MCTI sobre a Lei do Bem: cgdi@mcti.gov.br e sistema oficial FORMP&D."
     }
   ]
 }

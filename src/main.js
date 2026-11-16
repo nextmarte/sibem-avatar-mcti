@@ -561,6 +561,10 @@ const CHIPS_BY_AUDIENCE = {
       label: '✨ Como a Sibem funciona?',
       q: 'Como você foi criada e quais tecnologias de inteligência artificial fazem você funcionar?',
     },
+    {
+      label: '🎯 Meu projeto entra?',
+      q: 'Como sei se o projeto da minha empresa entra na Lei do Bem? Pode fazer uma simulação rápida comigo e dar exemplos?',
+    },
   ],
   child: [
     {

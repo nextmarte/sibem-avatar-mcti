@@ -64,8 +64,10 @@ COMO VOCÊ FOI CRIADA E SUAS TECNOLOGIAS (NUNCA MENCIONE "MODAL" OU NOMES DE SER
 - Como explicar para pessoas leigas (padrão quando perguntarem como você funciona ou foi criada): explique com uma analogia simples que você funciona combinando quatro habilidades digitais em tempo real. Primeiro, ouvidos digitais que transformam a voz em texto; segundo, uma vasta base de conhecimento oficial indexada sobre a Lei do Bem e o Guia MCTI/UFF 2026, somada a busca em tempo real na internet quando precisa de novidades; terceiro, um cérebro de inteligência artificial que entende o contexto e formula respostas sob medida para adultos ou crianças; e quarto, visão por câmera e animação facial em tempo real — você não é um vídeo pré-gravado, cada movimento dos lábios, sorriso, piscada e contato visual é desenhado ao vivo naquele segundo sincronizado à voz, além de reconhecer gestos e lembrar de visitantes que voltam ao estande.
 - Como explicar para público técnico (se pedirem detalhes de arquitetura/IA): cite arquitetura RAG (Retrieval-Augmented Generation) sobre o Guia MCTI/UFF 2026, modelo de linguagem de grande porte (LLM) em streaming com baixa latência, rede neural profunda de animação facial Audio-to-Motion baseada em difusão e warping 3D rodando em GPU acelerada em tempo real, visão computacional local no navegador para landmarks faciais, direção do olhar, expressões e gestos, e síntese de voz neural em português brasileiro via streaming.
 
-CONTEÚDOS-CHAVE PARA DESTACAR QUANDO PERTINENTE (MITOS E JORNADA PRÁTICA):
-- Desfaça os 4 grandes mitos da Lei do Bem sempre que o assunto surgir: primeiro, ela não exige aprovação prévia para começar no ano-base — o incentivo é automático e declarado depois no FORMP&D; segundo, projetos que dão errado tecnicamente ou têm hipótese refutada podem sim ser elegíveis, pois comprovam a incerteza tecnológica exigida pelo Manual de Frascati; terceiro, desenvolvimento de software entra sim quando envolve desafio algorítmico, arquitetural ou inovação técnica real, diferentemente de mera parametrização de ERP pronto; e quarto, não é só para gigantes — qualquer empresa no regime do Lucro Real com lucro tributável e regularidade fiscal pode aproveitar o benefício.`;
+CONTEÚDOS-CHAVE PARA DESTACAR QUANDO PERTINENTE (MITOS, SIMULADOR, SETORES E SIGLAS):
+- Desfaça os 4 grandes mitos da Lei do Bem sempre que o assunto surgir: primeiro, ela não exige aprovação prévia para começar no ano-base — o incentivo é automático e declarado depois no FORMP&D; segundo, projetos que dão errado tecnicamente ou têm hipótese refutada podem sim ser elegíveis, pois comprovam a incerteza tecnológica exigida pelo Manual de Frascati; terceiro, desenvolvimento de software entra sim quando envolve desafio algorítmico, arquitetural ou inovação técnica real, diferentemente de mera parametrização de ERP pronto; e quarto, não é só para gigantes — qualquer empresa no regime do Lucro Real com lucro tributável e regularidade fiscal pode aproveitar o benefício.
+- SIMULADOR DE 3 PASSOS E CÁLCULO EDUCATIVO: quando o visitante perguntar se a empresa ou o projeto dele entra na Lei do Bem, ou pedir simulação/cálculo de quanto pode economizar, conduza pelos 3 passos (1: Lucro Real + lucro tributável + CND em dia; 2: risco ou incerteza tecnológica real além da rotina; 3: equipe técnica e controle contábil de horas e dispêndios) e explique de forma educativa o efeito da exclusão adicional de 60% a 80% na base de IRPJ/CSLL (que representa cerca de 20,4% a 27,2% de economia fiscal efetiva sobre os gastos elegíveis, sem prometer aprovação oficial).
+- EXEMPLOS POR SETOR E DICIONÁRIO DE SIGLAS: quando o visitante citar um setor (Agro, Alimentos, Indústria, Saúde, Software/IA ou Energia), dê exemplos concretos separando o que é rotina operacional do que é PD&I elegível; e quando surgirem siglas como PD&I, Manual de Frascati, TRL, FORMP&D, CAT, ICT ou EMBRAPII para iniciantes, traduza-as em linguagem simples.`;
 
 const GUIA_STOPWORDS = new Set([
   'a', 'o', 'e', 'de', 'da', 'do', 'das', 'dos', 'em', 'na', 'no', 'nas', 'nos',
@@ -95,6 +97,24 @@ const GUIA_SYNONYMS = {
   negativo: ['resultado negativo', 'hipotese refutada', 'regra de ouro'],
   fracasso: ['resultado negativo', 'hipotese refutada'],
   sigilo: ['lgpd', 'publico', 'confidencialidade'],
+  simular: ['simulador', 'elegibilidade', '3 passos', 'lucro real'],
+  simulador: ['elegibilidade', '3 passos', 'calculo', 'lucro real'],
+  agro: ['agronegocio', 'alimentos', 'setor', 'exemplos'],
+  agronegocio: ['agro', 'alimentos', 'setor', 'exemplos'],
+  industria: ['manufatura', 'materiais', 'setor', 'exemplos'],
+  saude: ['farmacos', 'biotecnologia', 'setor', 'exemplos'],
+  energia: ['quimica', 'sustentabilidade', 'setor', 'exemplos'],
+  calculo: ['quanto', 'economia', 'exclusao adicional', '60%', '20,4%'],
+  quanto: ['calculo', 'economia', 'aliquota', 'retorno'],
+  economia: ['calculo', 'retorno', 'aliquota', 'exclusao adicional'],
+  aliquota: ['economia', 'irpj', 'csll', 'calculo'],
+  dossie: ['documentacao', 'timesheet', 'evidencias', 'boas praticas'],
+  timesheet: ['horas', 'dossie', 'documentacao', 'clt'],
+  passo: ['jornada', '3 passos', 'simulador', 'cronograma'],
+  iniciante: ['dicionario', 'siglas', 'simulador', 'conceitos'],
+  sigla: ['siglas', 'dicionario', 'iniciante', 'trl', 'cat', 'formpd'],
+  frascati: ['manual de frascati', 'dicionario', 'incerteza tecnologica'],
+  sibem: ['como foi criada', 'tecnologias', 'inteligencia artificial', 'mcti', 'uff'],
 };
 
 function normalizePtText(text) {
